@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartAccess UCB - Gestion des Accès</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="assets/css/style.css" rel="stylesheet">
+</head>
+<body>
+    <div id="app">
+        <!-- Navigation -->
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+            <div class="container-fluid">
+                <a class="navbar-brand fw-bold" href="#">
+                    <i class="bi bi-shield-check me-2"></i>
+                    SmartAccess UCB
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" :class="{ active: currentView === 'dashboard' }" 
+                               @click="setView('dashboard')" href="#">
+                                <i class="bi bi-speedometer2 me-1"></i>Tableau de bord
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" :class="{ active: currentView === 'students' }" 
+                               @click="setView('students')" href="#">
+                                <i class="bi bi-people me-1"></i>Étudiants
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" :class="{ active: currentView === 'rooms' }" 
+                               @click="setView('rooms')" href="#">
+                                <i class="bi bi-door-open me-1"></i>Salles
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" :class="{ active: currentView === 'access' }" 
+                               @click="setView('access')" href="#">
+                                <i class="bi bi-key me-1"></i>Accès
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" :class="{ active: currentView === 'verify' }" 
+                               @click="setView('verify')" href="#">
+                                <i class="bi bi-check-circle me-1"></i>Vérification
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" :class="{ active: currentView === 'history' }" 
+                               @click="setView('history')" href="#">
+                                <i class="bi bi-clock-history me-1"></i>Historique
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="container-fluid mt-5 pt-4">
+            <!-- Loading Spinner -->
+            <div v-if="loading" class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Chargement...</span>
+                </div>
+            </div>
+
+            <!-- Toast Notifications -->
+            <div class="toast-container position-fixed top-0 end-0 p-3">
+                <div v-for="toast in toasts" :key="toast.id" 
+                     class="toast show" :class="'bg-' + toast.type" role="alert">
+                    <div class="toast-header">
+                        <i :class="getToastIcon(toast.type)" class="me-2"></i>
+                        <strong class="me-auto">{{ getToastTitle(toast.type) }}</strong>
+                        <button type="button" class="btn-close" @click="removeToast(toast.id)"></button>
+                    </div>
+                    <div class="toast-body text-white">
+                        {{ toast.message }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard View -->
+            <div v-if="currentView === 'dashboard'" class="dashboard-view">
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h1 class="h3 mb-0">
+                            <i class="bi bi-speedometer2 me-2"></i>
+                            Tableau de bord
+                        </h1>
+                        <p class="text-muted">Vue d'ensemble du système SmartAccess UCB</p>
+                    </div>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3 mb-3">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h4 class="card-title">{{ stats.totalStudents }}</h4>
+                                        <p class="card-text">Étudiants</p>
+                                    </div>
+                                    <i class="bi bi-people fs-1 opacity-75"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="card bg-success text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h4 class="card-title">{{ stats.totalRooms }}</h4>
+                                        <p class="card-text">Salles</p>
+                                    </div>
+                                    <i class="bi bi-door-open fs-1 opacity-75"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="card bg-warning text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h4 class="card-title">{{ stats.activeAccess }}</h4>
+                                        <p class="card-text">Accès actifs</p>
+                                    </div>
+                                    <i class="bi bi-key fs-1 opacity-75"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="card bg-info text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h4 class="card-title">{{ stats.totalHistory }}</h4>
+                                        <p class="card-text">Historique</p>
+                                    </div>
+                                    <i class="bi bi-clock-history fs-1 opacity-75"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Access -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-clock-history me-2"></i>
+                            Derniers accès
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div v-if="recentAccess.length === 0" class="text-center py-3 text-muted">
+                            Aucun accès récent
+                        </div>
+                        <div v-else class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Étudiant</th>
+                                        <th>Salle</th>
+                                        <th>Type</th>
+                                        <th>Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="access in recentAccess.slice(0, 5)" :key="access.id">
+                                        <td>{{ access.matricule_utilise }}</td>
+                                        <td>{{ access.salle_id }}</td>
+                                        <td>
+                                            <span class="badge bg-primary">{{ access.type_acces }}</span>
+                                        </td>
+                                        <td>{{ formatDate(access.date_entree) }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Students View -->
+            <div v-if="currentView === 'students'" class="students-view">
+                <div class="row mb-4">
+                    <div class="col-md-8">
+                        <h1 class="h3 mb-0">
+                            <i class="bi bi-people me-2"></i>
+                            Gestion des étudiants
+                        </h1>
+                        <p class="text-muted">Importer et gérer les étudiants</p>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#importStudentModal">
+                            <i class="bi bi-plus-circle me-1"></i>
+                            Importer étudiant
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Search -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="bi bi-search"></i>
+                            </span>
+                            <input type="text" class="form-control" placeholder="Rechercher un étudiant..." 
+                                   v-model="studentSearch">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Students Table -->
+                <div class="card">
+                    <div class="card-body">
+                        <div v-if="filteredStudents.length === 0" class="text-center py-3 text-muted">
+                            Aucun étudiant trouvé
+                        </div>
+                        <div v-else class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Matricule</th>
+                                        <th>Nom</th>
+                                        <th>Prénom</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="student in paginatedStudents" :key="student.id">
+                                        <td>{{ student.id }}</td>
+                                        <td>
+                                            <span class="badge bg-secondary">{{ student.matricule }}</span>
+                                        </td>
+                                        <td>{{ student.nom }}</td>
+                                        <td>{{ student.prenom }}</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary me-1" 
+                                                    @click="viewStudentDetails(student)">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination -->
+                        <nav v-if="totalStudentPages > 1">
+                            <ul class="pagination justify-content-center">
+                                <li class="page-item" :class="{ disabled: currentStudentPage === 1 }">
+                                    <a class="page-link" @click="currentStudentPage = Math.max(1, currentStudentPage - 1)">
+                                        Précédent
+                                    </a>
+                                </li>
+                                <li v-for="page in totalStudentPages" :key="page" 
+                                    class="page-item" :class="{ active: page === currentStudentPage }">
+                                    <a class="page-link" @click="currentStudentPage = page">{{ page }}</a>
+                                </li>
+                                <li class="page-item" :class="{ disabled: currentStudentPage === totalStudentPages }">
+                                    <a class="page-link" @click="currentStudentPage = Math.min(totalStudentPages, currentStudentPage + 1)">
+                                        Suivant
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rooms View -->
+            <div v-if="currentView === 'rooms'" class="rooms-view">
+                <div class="row mb-4">
+                    <div class="col-md-8">
+                        <h1 class="h3 mb-0">
+                            <i class="bi bi-door-open me-2"></i>
+                            Gestion des salles
+                        </h1>
+                        <p class="text-muted">Créer et gérer les salles</p>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createRoomModal">
+                            <i class="bi bi-plus-circle me-1"></i>
+                            Créer une salle
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Rooms Grid -->
+                <div class="row">
+                    <div v-for="room in rooms" :key="room.id" class="col-md-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h5 class="card-title">{{ room.nom_salle }}</h5>
+                                    <span class="badge bg-primary">ID: {{ room.id }}</span>
+                                </div>
+                                <p class="card-text text-muted">
+                                    <i class="bi bi-geo-alt me-1"></i>
+                                    {{ room.localisation || 'Non spécifiée' }}
+                                </p>
+                                <p class="card-text">{{ room.description || 'Aucune description' }}</p>
+                            </div>
+                            <div class="card-footer bg-transparent">
+                                <button class="btn btn-sm btn-outline-primary me-1" 
+                                        @click="editRoom(room)">
+                                    <i class="bi bi-pencil"></i> Modifier
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" 
+                                        @click="deleteRoom(room)">
+                                    <i class="bi bi-trash"></i> Supprimer
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div v-if="rooms.length === 0" class="text-center py-5 text-muted">
+                    <i class="bi bi-door-open fs-1 mb-3"></i>
+                    <p>Aucune salle créée</p>
+                </div>
+            </div>
+
+            <!-- Access View -->
+            <div v-if="currentView === 'access'" class="access-view">
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h1 class="h3 mb-0">
+                            <i class="bi bi-key me-2"></i>
+                            Octroi d'accès
+                        </h1>
+                        <p class="text-muted">Accorder l'accès aux étudiants pour des salles spécifiques</p>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Nouvel accès</h5>
+                            </div>
+                            <div class="card-body">
+                                <form @submit.prevent="grantAccess">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Étudiant</label>
+                                            <select class="form-select" v-model="accessForm.etudiant_id" required>
+                                                <option value="">-- Sélectionner un étudiant --</option>
+                                                <option v-for="student in students" :key="student.id" :value="student.id">
+                                                    {{ student.nom }} {{ student.prenom }} ({{ student.matricule }})
+                                                </option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Salle</label>
+                                            <select class="form-select" v-model="accessForm.salle_id" required>
+                                                <option value="">-- Sélectionner une salle --</option>
+                                                <option v-for="room in rooms" :key="room.id" :value="room.id">
+                                                    {{ room.nom_salle }}
+                                                </option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Date de début</label>
+                                            <input type="datetime-local" class="form-control" 
+                                                   v-model="accessForm.date_debut" required>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Date de fin</label>
+                                            <input type="datetime-local" class="form-control" 
+                                                   v-model="accessForm.date_fin">
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary" :disabled="loading">
+                                        <i class="bi bi-check-circle me-1"></i>
+                                        Accorder l'accès
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Informations</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle me-2"></i>
+                                    <strong>Conseil :</strong> Assurez-vous que les dates sont correctes avant d'accorder l'accès.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Verify Access View -->
+            <div v-if="currentView === 'verify'" class="verify-view">
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h1 class="h3 mb-0">
+                            <i class="bi bi-check-circle me-2"></i>
+                            Vérification d'accès
+                        </h1>
+                        <p class="text-muted">Vérifier si un étudiant a accès à une salle</p>
+                    </div>
+                </div>
+
+                <div class="row justify-content-center">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Vérifier l'accès</h5>
+                            </div>
+                            <div class="card-body">
+                                <form @submit.prevent="verifyAccess">
+                                    <div class="mb-3">
+                                        <label class="form-label">Matricule étudiant</label>
+                                        <input type="text" class="form-control" 
+                                               v-model="verifyForm.matricule" 
+                                               placeholder="Entrez le matricule" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Salle</label>
+                                        <select class="form-select" v-model="verifyForm.salle_id" required>
+                                            <option value="">-- Sélectionner une salle --</option>
+                                            <option v-for="room in rooms" :key="room.id" :value="room.id">
+                                                {{ room.nom_salle }}
+                                            </option>
+                                        </select>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary w-100" :disabled="loading">
+                                        <i class="bi bi-search me-1"></i>
+                                        Vérifier l'accès
+                                    </button>
+                                </form>
+
+                                <!-- Verification Result -->
+                                <div v-if="verificationResult" class="mt-4">
+                                    <div class="alert" :class="verificationResult.hasAccess ? 'alert-success' : 'alert-danger'">
+                                        <div class="d-flex align-items-center">
+                                            <i :class="verificationResult.hasAccess ? 'bi bi-check-circle-fill' : 'bi bi-x-circle-fill'" 
+                                               class="fs-4 me-3"></i>
+                                            <div>
+                                                <h6 class="alert-heading mb-1">
+                                                    {{ verificationResult.hasAccess ? 'Accès autorisé' : 'Accès refusé' }}
+                                                </h6>
+                                                <p class="mb-0">{{ verificationResult.message }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History View -->
+            <div v-if="currentView === 'history'" class="history-view">
+                <div class="row mb-4">
+                    <div class="col-md-8">
+                        <h1 class="h3 mb-0">
+                            <i class="bi bi-clock-history me-2"></i>
+                            Historique des accès
+                        </h1>
+                        <p class="text-muted">Consulter l'historique complet des accès</p>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <button class="btn btn-outline-primary" @click="loadHistory">
+                            <i class="bi bi-arrow-clockwise me-1"></i>
+                            Actualiser
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label class="form-label">Filtrer par salle</label>
+                                <select class="form-select" v-model="historyFilter.salle_id">
+                                    <option value="">Toutes les salles</option>
+                                    <option v-for="room in rooms" :key="room.id" :value="room.id">
+                                        {{ room.nom_salle }}
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Date de début</label>
+                                <input type="date" class="form-control" v-model="historyFilter.date_debut">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Date de fin</label>
+                                <input type="date" class="form-control" v-model="historyFilter.date_fin">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- History Table -->
+                <div class="card">
+                    <div class="card-body">
+                        <div v-if="filteredHistory.length === 0" class="text-center py-3 text-muted">
+                            Aucun historique trouvé
+                        </div>
+                        <div v-else class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Matricule</th>
+                                        <th>Salle</th>
+                                        <th>Type d'accès</th>
+                                        <th>Date d'entrée</th>
+                                        <th>Date de sortie</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="record in paginatedHistory" :key="record.id">
+                                        <td>{{ record.id }}</td>
+                                        <td>
+                                            <span class="badge bg-secondary">{{ record.matricule_utilise }}</span>
+                                        </td>
+                                        <td>{{ record.salle_id }}</td>
+                                        <td>
+                                            <span class="badge bg-primary">{{ record.type_acces }}</span>
+                                        </td>
+                                        <td>{{ formatDate(record.date_entree) }}</td>
+                                        <td>{{ formatDate(record.date_sortie) }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination -->
+                        <nav v-if="totalHistoryPages > 1">
+                            <ul class="pagination justify-content-center">
+                                <li class="page-item" :class="{ disabled: currentHistoryPage === 1 }">
+                                    <a class="page-link" @click="currentHistoryPage = Math.max(1, currentHistoryPage - 1)">
+                                        Précédent
+                                    </a>
+                                </li>
+                                <li v-for="page in totalHistoryPages" :key="page" 
+                                    class="page-item" :class="{ active: page === currentHistoryPage }">
+                                    <a class="page-link" @click="currentHistoryPage = page">{{ page }}</a>
+                                </li>
+                                <li class="page-item" :class="{ disabled: currentHistoryPage === totalHistoryPages }">
+                                    <a class="page-link" @click="currentHistoryPage = Math.min(totalHistoryPages, currentHistoryPage + 1)">
+                                        Suivant
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Import Student Modal -->
+        <div class="modal fade" id="importStudentModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Importer un étudiant</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form @submit.prevent="importStudent">
+                            <div class="mb-3">
+                                <label class="form-label">Matricule externe</label>
+                                <input type="text" class="form-control" 
+                                       v-model="importForm.matricule_ext" 
+                                       placeholder="Entrez le matricule externe" required>
+                            </div>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary" :disabled="loading">
+                                    <i class="bi bi-download me-1"></i>
+                                    Importer
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create Room Modal -->
+        <div class="modal fade" id="createRoomModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Créer une nouvelle salle</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form @submit.prevent="createRoom">
+                            <div class="mb-3">
+                                <label class="form-label">Nom de la salle</label>
+                                <input type="text" class="form-control" 
+                                       v-model="roomForm.nom_salle" 
+                                       placeholder="Ex: Salle A101" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Localisation</label>
+                                <input type="text" class="form-control" 
+                                       v-model="roomForm.localisation" 
+                                       placeholder="Ex: Bâtiment A, 1er étage">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Description</label>
+                                <textarea class="form-control" rows="3" 
+                                          v-model="roomForm.description" 
+                                          placeholder="Description de la salle"></textarea>
+                            </div>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary" :disabled="loading">
+                                    <i class="bi bi-plus-circle me-1"></i>
+                                    Créer la salle
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="assets/js/app.js"></script>
+</body>
+</html>

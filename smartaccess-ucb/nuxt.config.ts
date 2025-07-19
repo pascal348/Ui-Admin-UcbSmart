@@ -2,13 +2,14 @@
 export default defineNuxtConfig({
   compatibilityDate: '2024-04-03',
   devtools: { enabled: true },
+  srcDir: '.',
   css: [
     'bootstrap/dist/css/bootstrap.min.css',
     'bootstrap-icons/font/bootstrap-icons.css',
     '~/assets/css/main.css'
   ],
   plugins: [
-    '~/plugins/bootstrap.client.ts',
+    { src: '~/plugins/bootstrap.client.ts', mode: 'client' },
     '~/plugins/axios.ts'
   ],
   app: {
@@ -24,6 +25,11 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       apiBase: 'http://127.0.0.1:8000'
+    }
+  },
+  nitro: {
+    experimental: {
+      wasm: true
     }
   }
 })

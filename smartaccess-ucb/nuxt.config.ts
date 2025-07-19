@@ -2,11 +2,25 @@
 export default defineNuxtConfig({
   compatibilityDate: '2024-04-03',
   devtools: { enabled: true },
+  ssr: true,
   css: [
     'bootstrap/dist/css/bootstrap.min.css',
     'bootstrap-icons/font/bootstrap-icons.css',
     '~/assets/css/main.css'
   ],
+  nitro: {
+    experimental: {
+      wasm: true
+    }
+  },
+  vite: {
+    define: {
+      global: 'globalThis'
+    },
+    optimizeDeps: {
+      include: ['axios']
+    }
+  },
   plugins: [
     '~/plugins/bootstrap.client.ts',
     '~/plugins/axios.ts'
